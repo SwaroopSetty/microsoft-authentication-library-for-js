@@ -398,8 +398,8 @@ export class PublicClientApplication {
      * @returns {@link Account} - the account object stored in MSAL
      */
     public async getAccountAsync(): Promise<Account> {
-        if (this.tokenExchangePromise) {
-            const tokenResponse = await this.tokenExchangePromise;
+        const tokenResponse = await this.tokenExchangePromise;
+        if (tokenResponse !== null) {
             return tokenResponse.account;
         }
         
