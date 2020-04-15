@@ -105,7 +105,7 @@ export class PublicClientApplication {
      * or the library, depending on the origin of the error, or the AuthResponse object 
      * containing data from the server (returned with a null or non-blocking error).
      */
-    async handleRedirectCallback(authCallback: AuthCallback): Promise<void> {
+    public async handleRedirectCallback(authCallback: AuthCallback): Promise<void> {
         // Check whether callback object was passed.
         if (!authCallback) {
             throw BrowserConfigurationAuthError.createInvalidCallbackObjectError(authCallback);
@@ -115,6 +115,7 @@ export class PublicClientApplication {
         try {
             const tokenResponse = await this.tokenExchangePromise;
             if (tokenResponse) {
+                this.tokenExchangePromise = null;
                 authCallback(null, tokenResponse);
             }
         } catch (err) {
@@ -182,7 +183,7 @@ export class PublicClientApplication {
      * any code that follows this function will not execute.
      * @param {@link (AuthenticationParameters:type)}
      */
-    loginRedirect(request: AuthenticationParameters): void {
+    public loginRedirect(request: AuthenticationParameters): void {
         // Preflight request
         this.preflightRequest();
 
@@ -208,7 +209,7 @@ export class PublicClientApplication {
      *
      * To acquire only idToken, please pass clientId as the only scope in the Authentication Parameters
      */
-    acquireTokenRedirect(request: AuthenticationParameters): void {
+    public acquireTokenRedirect(request: AuthenticationParameters): void {
         // Preflight request
         this.preflightRequest();
 
@@ -238,7 +239,7 @@ export class PublicClientApplication {
      *
      * @returns {Promise.<TokenResponse>} - a promise that is fulfilled when this function has completed, or rejected if an error was raised. Returns the {@link AuthResponse} object
      */
-    async loginPopup(request: AuthenticationParameters): Promise<TokenResponse> {
+    public async loginPopup(request: AuthenticationParameters): Promise<TokenResponse> {
         // Preflight request
         this.preflightRequest();
 
@@ -256,7 +257,7 @@ export class PublicClientApplication {
      * To acquire only idToken, please pass clientId as the only scope in the Authentication Parameters
      * @returns {Promise.<TokenResponse>} - a promise that is fulfilled when this function has completed, or rejected if an error was raised. Returns the {@link AuthResponse} object
      */
-    async acquireTokenPopup(request: AuthenticationParameters): Promise<TokenResponse> {
+    public async acquireTokenPopup(request: AuthenticationParameters): Promise<TokenResponse> {
         // Preflight request
         this.preflightRequest();
 
@@ -291,7 +292,11 @@ export class PublicClientApplication {
 
     // #region Silent Flow
 
-    async ssoSilent(request: AuthenticationParameters): Promise<TokenResponse> {
+    /**
+     * 
+     * @param request 
+     */
+    public async ssoSilent(request: AuthenticationParameters): Promise<TokenResponse> {
         // block the reload if it occurred inside a hidden iframe
         BrowserUtils.blockReloadInHiddenIframes();
 
@@ -329,7 +334,7 @@ export class PublicClientApplication {
      * @returns {Promise.<TokenResponse>} - a promise that is fulfilled when this function has completed, or rejected if an error was raised. Returns the {@link AuthResponse} object
      *
      */
-    async acquireTokenSilent(tokenRequest: TokenRenewParameters): Promise<TokenResponse> {
+    public async acquireTokenSilent(tokenRequest: TokenRenewParameters): Promise<TokenResponse> {
         // block the reload if it occurred inside a hidden iframe
         BrowserUtils.blockReloadInHiddenIframes();
 
@@ -345,7 +350,7 @@ export class PublicClientApplication {
      * Use to log out the current user, and redirect the user to the postLogoutRedirectUri.
      * Default behaviour is to redirect the user to `window.location.href`.
      */
-    logout(): void {
+    public logout(): void {
         // create logout string and navigate user window to logout. Auth module will clear cache.
         this.authModule.logout().then((logoutUri: string) => {
             BrowserUtils.navigateWindow(logoutUri);
@@ -385,6 +390,20 @@ export class PublicClientApplication {
      */
     public getAccount(): Account {
         return this.authModule.getAccount();
+    }
+
+    /**
+     * Returns the signed in account. If coming back from a redirect, 
+     * will check if a response is being handled before returning.
+     * @returns {@link Account} - the account object stored in MSAL
+     */
+    public async getAccountAsync(): Promise<Account> {
+        if (this.tokenExchangePromise) {
+            const tokenResponse = await this.tokenExchangePromise;
+            return tokenResponse.account;
+        }
+        
+        return this.getAccount();
     }
 
     // #endregion
